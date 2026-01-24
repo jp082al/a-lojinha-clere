@@ -26,7 +26,11 @@ import {
   Plus,
   ArrowRight,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Printer,
+  Tag,
+  MessageSquare,
+  List
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Customer, Appliance, InsertCustomer, InsertAppliance } from "@shared/schema";
@@ -72,6 +76,7 @@ export default function NewOrder() {
   // Service order state
   const [defect, setDefect] = useState("");
   const [notes, setNotes] = useState("");
+  const [createdOrder, setCreatedOrder] = useState<any | null>(null);
 
   // Queries and mutations
   const { data: customers, isLoading: isLoadingCustomers } = useCustomers();
@@ -187,7 +192,11 @@ export default function NewOrder() {
           description: `Ordem de Serviço #${order.id} registrada.`,
         });
 
-        setLocation("/orders");
+        setCreatedOrder({
+          ...order,
+          customerName: isNewCustomer ? newCustomerData.name : selectedCustomer?.name,
+          customerPhone: isNewCustomer ? newCustomerData.phone : selectedCustomer?.phone
+        });
       }
     } catch (error) {
       toast({
@@ -199,6 +208,102 @@ export default function NewOrder() {
   };
 
   const isSubmitting = isCreatingCustomer || isCreatingAppliance || isCreatingOrder;
+
+  // Success state - show print options after order creation
+  if (createdOrder) {
+    const trackingUrl = createdOrder.trackingToken 
+      ? `${window.location.origin}/acompanhamento/${createdOrder.trackingToken}`
+      : null;
+
+    return (
+      <div className="max-w-lg mx-auto space-y-6 py-8">
+        <Card className="text-center border-green-200 bg-green-50/50">
+          <CardContent className="pt-8 pb-6 space-y-4">
+            <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
+              <CheckCircle2 className="h-8 w-8 text-green-600" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-green-900">OS Criada com Sucesso!</h2>
+              <p className="text-green-700 mt-1">Ordem de Serviço #{createdOrder.id} registrada.</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Ações Rápidas</CardTitle>
+            <CardDescription>Imprima ou envie os comprovantes</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button
+              className="w-full justify-start h-12"
+              variant="outline"
+              onClick={() => window.open(`/print/receipt/${createdOrder.id}`, '_blank')}
+              data-testid="button-print-receipt"
+            >
+              <Printer className="h-5 w-5 mr-3" />
+              Imprimir Nota de Entrada (Térmica)
+            </Button>
+            
+            <Button
+              className="w-full justify-start h-12"
+              variant="outline"
+              onClick={() => window.open(`/print/label/${createdOrder.id}`, '_blank')}
+              data-testid="button-print-label"
+            >
+              <Tag className="h-5 w-5 mr-3" />
+              Imprimir Etiqueta (Térmica)
+            </Button>
+
+            <Separator />
+
+            <Button
+              className="w-full justify-start h-12 text-green-600"
+              variant="outline"
+              onClick={() => {
+                const message = `Olá ${createdOrder.customerName}!\n\nSua OS #${createdOrder.id} foi registrada com sucesso.\n\n${trackingUrl ? `Acompanhe online: ${trackingUrl}` : ''}`;
+                window.open(`https://wa.me/55${(createdOrder.customerPhone || '').replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+              }}
+              data-testid="button-whatsapp-success"
+            >
+              <MessageSquare className="h-5 w-5 mr-3" />
+              Enviar Comprovante por WhatsApp
+            </Button>
+          </CardContent>
+        </Card>
+
+        <div className="flex gap-4">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={() => setLocation("/orders")}
+          >
+            <List className="h-4 w-4 mr-2" />
+            Ver Ordens
+          </Button>
+          <Button
+            className="flex-1"
+            onClick={() => {
+              setCreatedOrder(null);
+              setSelectedCustomer(null);
+              setSelectedAppliance(null);
+              setIsNewCustomer(false);
+              setIsNewAppliance(false);
+              setCustomerSearch("");
+              setDefect("");
+              setNotes("");
+              setNewCustomerData({ name: "", phone: "", address: "", notes: "" });
+              setNewApplianceData({ type: "", brand: "", model: "", serialNumber: "" });
+            }}
+            data-testid="button-new-order-again"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nova OS
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">

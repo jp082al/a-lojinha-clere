@@ -12,6 +12,9 @@ import Dashboard from "@/pages/dashboard";
 import Customers from "@/pages/customers";
 import Orders from "@/pages/orders";
 import NewOrder from "@/pages/new-order";
+import PrintReceipt from "@/pages/print-receipt";
+import PrintLabel from "@/pages/print-label";
+import Tracking from "@/pages/tracking";
 import Login from "@/pages/login";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -47,6 +50,9 @@ function Router() {
       <Route path="/customers" component={() => <ProtectedRoute component={Customers} />} />
       <Route path="/orders" component={() => <ProtectedRoute component={Orders} />} />
       <Route path="/new-order" component={() => <ProtectedRoute component={NewOrder} />} />
+      <Route path="/print/receipt/:id" component={PrintReceipt} />
+      <Route path="/print/label/:id" component={PrintLabel} />
+      <Route path="/acompanhamento/:token" component={Tracking} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -1,11 +1,14 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { useServiceOrders, useCreateServiceOrder, useUpdateServiceOrder } from "@/hooks/use-service-orders";
 import { useCustomers } from "@/hooks/use-customers";
 import { useAppliances } from "@/hooks/use-appliances";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -21,24 +25,60 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, MessageSquare, Edit, Filter } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { 
+  Plus, 
+  Search, 
+  MessageSquare, 
+  Filter, 
+  Printer, 
+  Tag, 
+  Share2, 
+  Mail, 
+  CheckCircle2,
+  MoreVertical,
+  Link2,
+  ExternalLink
+} from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertServiceOrderSchema, type InsertServiceOrder, type ServiceOrder } from "@shared/schema";
+import { insertServiceOrderSchema, type InsertServiceOrder } from "@shared/schema";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+
+type StatusFilter = "all" | "open" | "finalized";
 
 export default function Orders() {
+  const [, setLocation] = useLocation();
   const { data: orders, isLoading } = useServiceOrders();
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<any | null>(null);
+  const [finalizingOrder, setFinalizingOrder] = useState<any | null>(null);
 
-  const filteredOrders = orders?.filter(o => 
-    o.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    o.id.toString().includes(searchTerm)
-  );
+  const filteredOrders = orders?.filter(o => {
+    const matchesSearch = o.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      o.id.toString().includes(searchTerm);
+    
+    if (!matchesSearch) return false;
+
+    if (statusFilter === "open") {
+      return !["Entregue"].includes(o.status) && !o.finalStatus;
+    }
+    if (statusFilter === "finalized") {
+      return o.status === "Entregue" || o.finalStatus;
+    }
+    return true;
+  });
 
   return (
     <div className="space-y-8">
@@ -47,29 +87,50 @@ export default function Orders() {
           <h2 className="text-3xl font-bold tracking-tight">Ordens de Serviço</h2>
           <p className="text-muted-foreground mt-2">Gerencie e acompanhe todos os serviços.</p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button className="shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all">
-              <Plus className="mr-2 h-4 w-4" /> Nova Ordem
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <OrderForm onClose={() => setIsCreateOpen(false)} />
-          </DialogContent>
-        </Dialog>
+        <Button 
+          className="shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
+          onClick={() => setLocation("/new-order")}
+          data-testid="button-new-order"
+        >
+          <Plus className="mr-2 h-4 w-4" /> Nova Ordem
+        </Button>
       </div>
 
-      <div className="flex items-center gap-4 bg-card p-4 rounded-xl border border-border shadow-sm">
-        <Search className="h-5 w-5 text-muted-foreground" />
-        <Input 
-          placeholder="Buscar por cliente ou Nº da OS..." 
-          className="border-none shadow-none focus-visible:ring-0 bg-transparent text-lg"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-        <Button variant="ghost" size="icon">
-          <Filter className="h-5 w-5 text-muted-foreground" />
-        </Button>
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+        <div className="flex-1 flex items-center gap-4 bg-card p-4 rounded-xl border border-border shadow-sm">
+          <Search className="h-5 w-5 text-muted-foreground" />
+          <Input 
+            placeholder="Buscar por cliente ou Nº da OS..." 
+            className="border-none shadow-none focus-visible:ring-0 bg-transparent text-lg"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            data-testid="input-search-orders"
+          />
+        </div>
+        
+        <div className="flex gap-2">
+          <Button
+            variant={statusFilter === "all" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setStatusFilter("all")}
+          >
+            Todas
+          </Button>
+          <Button
+            variant={statusFilter === "open" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setStatusFilter("open")}
+          >
+            Abertas
+          </Button>
+          <Button
+            variant={statusFilter === "finalized" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setStatusFilter("finalized")}
+          >
+            Finalizadas
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -86,17 +147,22 @@ export default function Orders() {
             filteredOrders?.map((order) => (
               <Card 
                 key={order.id} 
-                className="hover:shadow-md transition-shadow cursor-pointer group"
+                className={`hover:shadow-md transition-shadow cursor-pointer group ${order.finalStatus ? 'opacity-75' : ''}`}
                 onClick={() => setEditingOrder(order)}
               >
                 <CardContent className="p-6">
                   <div className="flex flex-col md:flex-row justify-between gap-4">
                     <div className="space-y-2">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 flex-wrap">
                         <span className="text-lg font-bold text-foreground">
                           #{order.id}
                         </span>
                         <StatusBadge status={order.status} />
+                        {order.finalStatus && (
+                          <Badge variant="secondary" className="bg-gray-100">
+                            {order.finalStatus}
+                          </Badge>
+                        )}
                         <span className="text-sm text-muted-foreground">
                           {format(new Date(order.entryDate!), "dd/MM/yyyy")}
                         </span>
@@ -115,18 +181,66 @@ export default function Orders() {
                         </p>
                       </div>
                       
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200 w-full md:w-auto"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const message = `Olá ${order.customer.name}, sua OS #${order.id} está com status: ${order.status}. Total: R$ ${Number(order.totalValue).toFixed(2)}.`;
-                          window.open(`https://wa.me/55${order.customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
-                        }}
-                      >
-                        <MessageSquare className="w-4 h-4 mr-2" /> WhatsApp
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const trackingUrl = order.trackingToken 
+                              ? `${window.location.origin}/acompanhamento/${order.trackingToken}`
+                              : '';
+                            const message = `Olá ${order.customer.name}!\n\nSua OS #${order.id} está com status: *${order.status}*\n\n${trackingUrl ? `Acompanhe online: ${trackingUrl}` : ''}`;
+                            window.open(`https://wa.me/55${order.customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+                          }}
+                          data-testid={`button-whatsapp-${order.id}`}
+                        >
+                          <MessageSquare className="w-4 h-4 mr-1" /> WhatsApp
+                        </Button>
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <Button size="sm" variant="ghost">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(`/print/receipt/${order.id}`, '_blank');
+                            }}>
+                              <Printer className="w-4 h-4 mr-2" /> Imprimir Nota
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(`/print/label/${order.id}`, '_blank');
+                            }}>
+                              <Tag className="w-4 h-4 mr-2" /> Imprimir Etiqueta
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              const trackingUrl = order.trackingToken 
+                                ? `${window.location.origin}/acompanhamento/${order.trackingToken}`
+                                : '';
+                              if (trackingUrl) {
+                                navigator.clipboard.writeText(trackingUrl);
+                              }
+                            }}>
+                              <Link2 className="w-4 h-4 mr-2" /> Copiar Link
+                            </DropdownMenuItem>
+                            {order.trackingToken && (
+                              <DropdownMenuItem onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(`/acompanhamento/${order.trackingToken}`, '_blank');
+                              }}>
+                                <ExternalLink className="w-4 h-4 mr-2" /> Ver Acompanhamento
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -136,13 +250,29 @@ export default function Orders() {
         </div>
       )}
 
-      {/* Edit Dialog */}
+      {/* Edit/Details Dialog */}
       <Dialog open={!!editingOrder} onOpenChange={(open) => !open && setEditingOrder(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           {editingOrder && (
-            <OrderForm 
+            <OrderDetails 
               order={editingOrder} 
-              onClose={() => setEditingOrder(null)} 
+              onClose={() => setEditingOrder(null)}
+              onFinalize={() => {
+                setFinalizingOrder(editingOrder);
+                setEditingOrder(null);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Finalization Dialog */}
+      <Dialog open={!!finalizingOrder} onOpenChange={(open) => !open && setFinalizingOrder(null)}>
+        <DialogContent className="max-w-md">
+          {finalizingOrder && (
+            <FinalizationForm 
+              order={finalizingOrder} 
+              onClose={() => setFinalizingOrder(null)} 
             />
           )}
         </DialogContent>
@@ -151,20 +281,13 @@ export default function Orders() {
   );
 }
 
-function OrderForm({ order, onClose }: { order?: any, onClose: () => void }) {
-  const { mutate: create, isPending: isCreating } = useCreateServiceOrder();
-  const { mutate: update, isPending: isUpdating } = useUpdateServiceOrder();
-  const { data: customers } = useCustomers();
+function OrderDetails({ order, onClose, onFinalize }: { order: any, onClose: () => void, onFinalize: () => void }) {
+  const { mutate: update, isPending } = useUpdateServiceOrder();
+  const { toast } = useToast();
   
-  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(
-    order?.customerId || null
-  );
-
-  const { data: appliances } = useAppliances(selectedCustomerId || 0);
-
   const form = useForm<InsertServiceOrder>({
     resolver: zodResolver(insertServiceOrderSchema),
-    defaultValues: order ? {
+    defaultValues: {
       customerId: order.customerId,
       applianceId: order.applianceId,
       defect: order.defect,
@@ -173,110 +296,98 @@ function OrderForm({ order, onClose }: { order?: any, onClose: () => void }) {
       serviceValue: order.serviceValue,
       partsValue: order.partsValue,
       totalValue: order.totalValue
-    } : {
-      defect: "",
-      diagnosis: "",
-      status: "Recebido",
-      serviceValue: "0",
-      partsValue: "0",
-      totalValue: "0"
     }
   });
 
-  // Calculate total automatically
-  const serviceVal = form.watch("serviceValue");
-  const partsVal = form.watch("partsValue");
-  
-  // Update total value when parts or service value changes
-  // We use useEffect or simple calculation here, but for simplicity we rely on manual input or calculate before submit
-  // Ideally, totalValue should be calculated.
-  
   const onSubmit = (data: InsertServiceOrder) => {
-    // Recalculate total just in case
     const total = (Number(data.serviceValue) + Number(data.partsValue)).toString();
     const finalData = { ...data, totalValue: total };
-
-    if (order) {
-      update({ id: order.id, ...finalData }, { onSuccess: onClose });
-    } else {
-      create(finalData, { onSuccess: onClose });
-    }
+    update({ id: order.id, ...finalData }, { 
+      onSuccess: () => {
+        toast({ title: "OS atualizada com sucesso!" });
+        onClose();
+      }
+    });
   };
 
-  const isPending = isCreating || isUpdating;
+  const trackingUrl = order.trackingToken 
+    ? `${window.location.origin}/acompanhamento/${order.trackingToken}`
+    : null;
+
+  const isFinalized = order.finalStatus || order.status === "Entregue";
 
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{order ? `Editar OS #${order.id}` : "Nova Ordem de Serviço"}</DialogTitle>
+        <DialogTitle className="flex items-center gap-3">
+          <span>OS #{order.id}</span>
+          <StatusBadge status={order.status} />
+          {order.finalStatus && (
+            <Badge variant="secondary">{order.finalStatus}</Badge>
+          )}
+        </DialogTitle>
       </DialogHeader>
 
+      {/* Quick Actions */}
+      <div className="flex flex-wrap gap-2 py-2">
+        <Button 
+          size="sm" 
+          variant="outline"
+          onClick={() => window.open(`/print/receipt/${order.id}`, '_blank')}
+        >
+          <Printer className="w-4 h-4 mr-2" /> Nota de Entrada
+        </Button>
+        <Button 
+          size="sm" 
+          variant="outline"
+          onClick={() => window.open(`/print/label/${order.id}`, '_blank')}
+        >
+          <Tag className="w-4 h-4 mr-2" /> Etiqueta
+        </Button>
+        <Button 
+          size="sm" 
+          variant="outline"
+          className="text-green-600"
+          onClick={() => {
+            const message = `Olá ${order.customer.name}!\n\nSua OS #${order.id} está com status: *${order.status}*\n\n${trackingUrl ? `Acompanhe online: ${trackingUrl}` : ''}`;
+            window.open(`https://wa.me/55${order.customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+          }}
+        >
+          <MessageSquare className="w-4 h-4 mr-2" /> WhatsApp
+        </Button>
+        <Button 
+          size="sm" 
+          variant="outline"
+          onClick={() => {
+            const subject = `OS #${order.id} - ${order.appliance.type} ${order.appliance.brand}`;
+            const body = `Olá ${order.customer.name},\n\nSua OS #${order.id} está com status: ${order.status}\n\nAparelho: ${order.appliance.type} ${order.appliance.brand} ${order.appliance.model}\nDefeito: ${order.defect}\n\n${trackingUrl ? `Acompanhe online: ${trackingUrl}` : ''}\n\nAtenciosamente,\nTechRepair`;
+            window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
+          }}
+        >
+          <Mail className="w-4 h-4 mr-2" /> Email
+        </Button>
+      </div>
+
+      <Separator />
+
+      {/* Customer & Appliance Info */}
+      <div className="grid grid-cols-2 gap-4 py-2 text-sm">
+        <div>
+          <p className="text-muted-foreground">Cliente</p>
+          <p className="font-medium">{order.customer.name}</p>
+          <p className="text-muted-foreground">{order.customer.phone}</p>
+        </div>
+        <div>
+          <p className="text-muted-foreground">Aparelho</p>
+          <p className="font-medium">{order.appliance.type} {order.appliance.brand}</p>
+          <p className="text-muted-foreground">{order.appliance.model}</p>
+        </div>
+      </div>
+
+      <Separator />
+
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="customerId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cliente</FormLabel>
-                  <Select 
-                    onValueChange={(val) => {
-                      field.onChange(Number(val));
-                      setSelectedCustomerId(Number(val));
-                      form.setValue("applianceId", 0); // Reset appliance
-                    }}
-                    defaultValue={field.value?.toString()}
-                    disabled={!!order}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um cliente" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {customers?.map((c) => (
-                        <SelectItem key={c.id} value={c.id.toString()}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="applianceId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Aparelho</FormLabel>
-                  <Select 
-                    onValueChange={(val) => field.onChange(Number(val))}
-                    defaultValue={field.value?.toString()}
-                    disabled={!selectedCustomerId || !!order}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={selectedCustomerId ? "Selecione o aparelho" : "Selecione um cliente primeiro"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {appliances?.map((a) => (
-                        <SelectItem key={a.id} value={a.id.toString()}>
-                          {a.type} {a.brand} ({a.model})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
           <FormField
             control={form.control}
             name="defect"
@@ -284,37 +395,33 @@ function OrderForm({ order, onClose }: { order?: any, onClose: () => void }) {
               <FormItem>
                 <FormLabel>Defeito Relatado</FormLabel>
                 <FormControl>
-                  <Textarea placeholder="Descreva o problema..." {...field} />
+                  <Textarea {...field} disabled={isFinalized} />
                 </FormControl>
-                <FormMessage />
               </FormItem>
             )}
           />
 
-          {order && (
-             <FormField
-             control={form.control}
-             name="diagnosis"
-             render={({ field }) => (
-               <FormItem>
-                 <FormLabel>Diagnóstico Técnico</FormLabel>
-                 <FormControl>
-                   <Textarea placeholder="Diagnóstico do técnico..." {...field} value={field.value || ""} />
-                 </FormControl>
-                 <FormMessage />
-               </FormItem>
-             )}
-           />
-          )}
+          <FormField
+            control={form.control}
+            name="diagnosis"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Diagnóstico Técnico</FormLabel>
+                <FormControl>
+                  <Textarea placeholder="Diagnóstico do técnico..." {...field} value={field.value || ""} disabled={isFinalized} />
+                </FormControl>
+              </FormItem>
+            )}
+          />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="status"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Status</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={isFinalized}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue />
@@ -329,7 +436,6 @@ function OrderForm({ order, onClose }: { order?: any, onClose: () => void }) {
                       <SelectItem value="Entregue">Entregue</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -340,11 +446,10 @@ function OrderForm({ order, onClose }: { order?: any, onClose: () => void }) {
                 name="serviceValue"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Mão de Obra (R$)</FormLabel>
+                    <FormLabel>Mão de Obra</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" {...field} />
+                      <Input type="number" step="0.01" {...field} disabled={isFinalized} />
                     </FormControl>
-                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -353,11 +458,10 @@ function OrderForm({ order, onClose }: { order?: any, onClose: () => void }) {
                 name="partsValue"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Peças (R$)</FormLabel>
+                    <FormLabel>Peças</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" {...field} />
+                      <Input type="number" step="0.01" {...field} disabled={isFinalized} />
                     </FormControl>
-                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -365,24 +469,117 @@ function OrderForm({ order, onClose }: { order?: any, onClose: () => void }) {
           </div>
 
           <div className="bg-muted p-4 rounded-lg flex justify-between items-center">
-             <span className="font-semibold">Total Estimado:</span>
-             <span className="text-xl font-bold text-primary">
-               {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                 Number(form.watch("serviceValue") || 0) + Number(form.watch("partsValue") || 0)
-               )}
-             </span>
+            <span className="font-semibold">Total:</span>
+            <span className="text-xl font-bold text-primary">
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                Number(form.watch("serviceValue") || 0) + Number(form.watch("partsValue") || 0)
+              )}
+            </span>
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            {!isFinalized && (
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                onClick={onFinalize}
+              >
+                <CheckCircle2 className="w-4 h-4 mr-2" /> Dar Baixa
+              </Button>
+            )}
+            <div className="flex-1" />
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={isPending}>
-              {isPending ? "Salvando..." : (order ? "Atualizar OS" : "Criar OS")}
-            </Button>
+            {!isFinalized && (
+              <Button type="submit" disabled={isPending}>
+                {isPending ? "Salvando..." : "Salvar"}
+              </Button>
+            )}
           </DialogFooter>
         </form>
       </Form>
+    </>
+  );
+}
+
+function FinalizationForm({ order, onClose }: { order: any, onClose: () => void }) {
+  const { mutate: update, isPending } = useUpdateServiceOrder();
+  const { toast } = useToast();
+  const [finalStatus, setFinalStatus] = useState<string>("");
+  const [deliveredTo, setDeliveredTo] = useState("");
+  const [notes, setNotes] = useState("");
+
+  const handleFinalize = () => {
+    if (!finalStatus) return;
+
+    update({ 
+      id: order.id, 
+      status: "Entregue",
+      finalStatus,
+      deliveredTo: deliveredTo || null,
+      finalNotes: notes || null,
+      exitDate: new Date()
+    }, { 
+      onSuccess: () => {
+        toast({ title: "OS finalizada com sucesso!" });
+        onClose();
+      }
+    });
+  };
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>Finalizar OS #{order.id}</DialogTitle>
+        <DialogDescription>
+          Registre a baixa/saída desta ordem de serviço.
+        </DialogDescription>
+      </DialogHeader>
+
+      <div className="space-y-4 py-4">
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Situação de Finalização *</label>
+          <Select onValueChange={setFinalStatus} value={finalStatus}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Consertado e entregue">Consertado e entregue</SelectItem>
+              <SelectItem value="Não autorizado (retirado)">Não autorizado (retirado pelo cliente)</SelectItem>
+              <SelectItem value="Autorizado para descarte">Autorizado para descarte</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Entregue para</label>
+          <Input
+            placeholder="Nome de quem retirou (opcional)"
+            value={deliveredTo}
+            onChange={(e) => setDeliveredTo(e.target.value)}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Observações da Finalização</label>
+          <Textarea
+            placeholder="Anotações sobre a finalização..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose} disabled={isPending}>
+          Cancelar
+        </Button>
+        <Button onClick={handleFinalize} disabled={!finalStatus || isPending}>
+          {isPending ? "Finalizando..." : "Confirmar Baixa"}
+        </Button>
+      </DialogFooter>
     </>
   );
 }
