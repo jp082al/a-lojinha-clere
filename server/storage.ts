@@ -21,6 +21,7 @@ export interface IStorage {
   // Service Orders
   getServiceOrders(): Promise<(ServiceOrder & { customer: Customer, appliance: Appliance })[]>;
   getServiceOrder(id: number): Promise<(ServiceOrder & { customer: Customer, appliance: Appliance }) | undefined>;
+  getServiceOrderByToken(token: string): Promise<(ServiceOrder & { customer: Customer, appliance: Appliance }) | undefined>;
   createServiceOrder(order: InsertServiceOrder): Promise<ServiceOrder>;
   updateServiceOrder(id: number, order: Partial<InsertServiceOrder>): Promise<ServiceOrder | undefined>;
 
@@ -111,8 +112,43 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createServiceOrder(insertOrder: InsertServiceOrder): Promise<ServiceOrder> {
-    const [order] = await db.insert(serviceOrders).values(insertOrder).returning();
+    const trackingToken = this.generateTrackingToken();
+    const [order] = await db.insert(serviceOrders).values({
+      ...insertOrder,
+      trackingToken
+    }).returning();
     return order;
+  }
+
+  async getServiceOrderByToken(token: string): Promise<(ServiceOrder & { customer: Customer, appliance: Appliance }) | undefined> {
+    const rows = await db
+      .select({
+        serviceOrder: serviceOrders,
+        customer: customers,
+        appliance: appliances,
+      })
+      .from(serviceOrders)
+      .innerJoin(customers, eq(serviceOrders.customerId, customers.id))
+      .innerJoin(appliances, eq(serviceOrders.applianceId, appliances.id))
+      .where(eq(serviceOrders.trackingToken, token));
+
+    if (rows.length === 0) return undefined;
+
+    const row = rows[0];
+    return {
+      ...row.serviceOrder,
+      customer: row.customer,
+      appliance: row.appliance,
+    };
+  }
+
+  private generateTrackingToken(): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+    let token = '';
+    for (let i = 0; i < 12; i++) {
+      token += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return token;
   }
 
   async updateServiceOrder(id: number, updateData: Partial<InsertServiceOrder>): Promise<ServiceOrder | undefined> {

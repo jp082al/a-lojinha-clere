@@ -49,6 +49,11 @@ export const serviceOrders = pgTable("service_orders", {
   totalValue: numeric("total_value").default("0"),
   entryDate: timestamp("entry_date").defaultNow(),
   exitDate: timestamp("exit_date"),
+  trackingToken: text("tracking_token"),
+  finalStatus: text("final_status"),
+  finalizedBy: text("finalized_by"),
+  deliveredTo: text("delivered_to"),
+  finalNotes: text("final_notes"),
 });
 
 export const insertServiceOrderSchema = createInsertSchema(serviceOrders).omit({ id: true, entryDate: true });

@@ -140,6 +140,31 @@ export async function registerRoutes(
     res.json(stats);
   });
 
+  // Public tracking (no auth required)
+  app.get('/api/tracking/:token', async (req, res) => {
+    const order = await storage.getServiceOrderByToken(req.params.token);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    res.json({
+      id: order.id,
+      status: order.status,
+      entryDate: order.entryDate,
+      exitDate: order.exitDate,
+      defect: order.defect,
+      diagnosis: order.diagnosis,
+      finalStatus: order.finalStatus,
+      appliance: {
+        type: order.appliance.type,
+        brand: order.appliance.brand,
+        model: order.appliance.model
+      },
+      customer: {
+        name: order.customer.name.split(' ')[0]
+      }
+    });
+  });
+
   // Seeding
   await seedDatabase();
 
