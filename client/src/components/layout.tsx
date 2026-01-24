@@ -6,7 +6,8 @@ import {
   Wrench, 
   LogOut, 
   Menu,
-  X
+  X,
+  PlusCircle
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -20,8 +21,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   const navItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/customers", label: "Clientes", icon: Users },
     { href: "/orders", label: "Ordens de Serviço", icon: Wrench },
+    { href: "/customers", label: "Clientes", icon: Users },
   ];
 
   const Sidebar = () => (
@@ -31,6 +32,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
           TechRepair
         </h1>
         <p className="text-sm text-muted-foreground mt-1">Gerenciamento Profissional</p>
+      </div>
+
+      <div className="px-4 mb-4">
+        <Link href="/new-order">
+          <Button 
+            className="w-full h-12 text-base font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
+            onClick={() => setMobileOpen(false)}
+            data-testid="button-new-order-sidebar"
+          >
+            <PlusCircle className="mr-2 h-5 w-5" />
+            Nova OS
+          </Button>
+        </Link>
       </div>
 
       <nav className="flex-1 px-4 space-y-2">
