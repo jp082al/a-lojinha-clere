@@ -47,15 +47,22 @@ export function useCreateServiceOrder() {
 export function useUpdateServiceOrder() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...data }: { id: number } & Partial<InsertServiceOrder>) => {
+    mutationFn: async ({ id, ...data }: { id: number } & Partial<InsertServiceOrder> & { exitDate?: Date | string | null, finalizedBy?: string | null }) => {
       const url = buildUrl(api.serviceOrders.update.path, { id });
+      const payload = {
+        ...data,
+        exitDate: data.exitDate instanceof Date ? data.exitDate.toISOString() : data.exitDate,
+      };
       const res = await fetch(url, {
         method: api.serviceOrders.update.method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to update service order");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: "Erro ao atualizar OS" }));
+        throw new Error(errorData.message || "Erro ao atualizar OS");
+      }
       return api.serviceOrders.update.responses[200].parse(await res.json());
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.serviceOrders.list.path] }),

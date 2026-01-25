@@ -8,6 +8,15 @@ import { Loader2 } from "lucide-react";
 const SHOP_NAME = "TechRepair Assistência Técnica";
 const SHOP_WHATSAPP = "(11) 99999-9999";
 
+const FINAL_STATUS_LABELS: Record<string, string> = {
+  "ENTREGUE": "Consertado e entregue",
+  "NAO_AUTORIZADO": "Não autorizado (retirado)",
+  "DESCARTE_AUTORIZADO": "Autorizado para descarte",
+  "Consertado e entregue": "Consertado e entregue",
+  "Não autorizado (retirado)": "Não autorizado (retirado)",
+  "Autorizado para descarte": "Autorizado para descarte"
+};
+
 export default function PrintExit() {
   const [, params] = useRoute("/print/exit/:id");
   const osId = Number(params?.id);

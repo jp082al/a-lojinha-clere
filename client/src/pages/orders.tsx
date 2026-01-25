@@ -160,7 +160,7 @@ export default function Orders() {
                         <StatusBadge status={order.status} />
                         {order.finalStatus && (
                           <Badge variant="secondary" className="bg-gray-100">
-                            {order.finalStatus}
+                            {{"ENTREGUE": "Entregue", "NAO_AUTORIZADO": "Não autorizado", "DESCARTE_AUTORIZADO": "Descarte"}[order.finalStatus] || order.finalStatus}
                           </Badge>
                         )}
                         <span className="text-sm text-muted-foreground">
@@ -524,9 +524,11 @@ function FinalizationForm({ order, onClose }: { order: any, onClose: () => void 
   const [partsDescription, setPartsDescription] = useState(order.partsDescription || "");
   const [warrantyDays, setWarrantyDays] = useState(order.warrantyDays?.toString() || "90");
   const [finalizationSuccess, setFinalizationSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleFinalize = () => {
     if (!finalStatus) return;
+    setErrorMessage(null);
 
     update({ 
       id: order.id, 
@@ -537,13 +539,35 @@ function FinalizationForm({ order, onClose }: { order: any, onClose: () => void 
       paymentMethod: paymentMethod || null,
       partsDescription: partsDescription || null,
       warrantyDays: warrantyDays ? parseInt(warrantyDays) : 90,
-      exitDate: new Date()
+      exitDate: new Date(),
+      finalizedBy: "Usuário"
     }, { 
       onSuccess: () => {
-        toast({ title: "OS finalizada com sucesso!" });
+        toast({ 
+          title: "OS finalizada com sucesso!", 
+          description: `Status: ${finalStatus}` 
+        });
         setFinalizationSuccess(true);
+      },
+      onError: (error) => {
+        const message = error instanceof Error ? error.message : "Erro desconhecido ao finalizar";
+        setErrorMessage(message);
+        toast({ 
+          title: "Erro ao finalizar OS", 
+          description: message,
+          variant: "destructive"
+        });
       }
     });
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      "ENTREGUE": "Consertado e entregue",
+      "NAO_AUTORIZADO": "Não autorizado (retirado)",
+      "DESCARTE_AUTORIZADO": "Autorizado para descarte"
+    };
+    return labels[status] || status;
   };
 
   if (finalizationSuccess) {
@@ -557,7 +581,7 @@ function FinalizationForm({ order, onClose }: { order: any, onClose: () => void 
         </DialogHeader>
         <div className="py-6 space-y-4">
           <p className="text-center text-muted-foreground">
-            A ordem de serviço foi finalizada com sucesso.
+            Status: <span className="font-medium">{getStatusLabel(finalStatus)}</span>
           </p>
           <div className="space-y-2">
             <Button 
@@ -585,6 +609,12 @@ function FinalizationForm({ order, onClose }: { order: any, onClose: () => void 
         </DialogDescription>
       </DialogHeader>
 
+      {errorMessage && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+          {errorMessage}
+        </div>
+      )}
+
       <div className="space-y-4 py-4">
         <div className="space-y-2">
           <label className="text-sm font-medium">Situação de Finalização *</label>
@@ -593,9 +623,9 @@ function FinalizationForm({ order, onClose }: { order: any, onClose: () => void 
               <SelectValue placeholder="Selecione..." />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Consertado e entregue">Consertado e entregue</SelectItem>
-              <SelectItem value="Não autorizado (retirado)">Não autorizado (retirado pelo cliente)</SelectItem>
-              <SelectItem value="Autorizado para descarte">Autorizado para descarte</SelectItem>
+              <SelectItem value="ENTREGUE">Consertado e entregue</SelectItem>
+              <SelectItem value="NAO_AUTORIZADO">Não autorizado (retirado pelo cliente)</SelectItem>
+              <SelectItem value="DESCARTE_AUTORIZADO">Autorizado para descarte</SelectItem>
             </SelectContent>
           </Select>
         </div>
