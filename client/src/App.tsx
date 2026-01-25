@@ -17,6 +17,7 @@ import PrintLabel from "@/pages/print-label";
 import PrintExit from "@/pages/print-exit";
 import Tracking from "@/pages/tracking";
 import Login from "@/pages/login";
+import UsersPage from "@/pages/users";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, isLoading } = useAuth();
@@ -51,6 +52,7 @@ function Router() {
       <Route path="/customers" component={() => <ProtectedRoute component={Customers} />} />
       <Route path="/orders" component={() => <ProtectedRoute component={Orders} />} />
       <Route path="/new-order" component={() => <ProtectedRoute component={NewOrder} />} />
+      <Route path="/users" component={() => <ProtectedRoute component={UsersPage} />} />
       <Route path="/print/receipt/:id" component={PrintReceipt} />
       <Route path="/print/label/:id" component={PrintLabel} />
       <Route path="/print/exit/:id" component={PrintExit} />

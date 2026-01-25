@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
-import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
+import { setupAuth, registerAuthRoutes, authStorage } from "./replit_integrations/auth";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -172,6 +172,19 @@ export async function registerRoutes(
 }
 
 async function seedDatabase() {
+  // Seed default admin user
+  const existingAdmin = await authStorage.getUserByUsername("admin");
+  if (!existingAdmin) {
+    await authStorage.createLocalUser({
+      firstName: "Administrador",
+      lastName: "",
+      username: "admin",
+      password: "admin123",
+      role: "ADMIN"
+    });
+    console.log("Default admin user created: admin / admin123");
+  }
+
   const existingCustomers = await storage.getCustomers();
   if (existingCustomers.length === 0) {
     const customer = await storage.createCustomer({

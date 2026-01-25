@@ -6,24 +6,34 @@ import {
   Wrench, 
   LogOut, 
   Menu,
-  X,
-  PlusCircle
+  PlusCircle,
+  UserCog,
+  Shield
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+
+const ROLE_LABELS: Record<string, { label: string; color: string }> = {
+  ADMIN: { label: "Admin", color: "bg-red-100 text-red-700 border-red-200" },
+  ATENDENTE: { label: "Atendente", color: "bg-blue-100 text-blue-700 border-blue-200" },
+  TECNICO: { label: "Técnico", color: "bg-green-100 text-green-700 border-green-200" },
+};
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin, hasPermission } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const navItems = [
-    { href: "/", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/orders", label: "Ordens de Serviço", icon: Wrench },
-    { href: "/customers", label: "Clientes", icon: Users },
+    { href: "/", label: "Dashboard", icon: LayoutDashboard, permission: "view_dashboard" },
+    { href: "/orders", label: "Ordens de Serviço", icon: Wrench, permission: "view_orders" },
+    { href: "/customers", label: "Clientes", icon: Users, permission: "view_customers" },
   ];
+
+  const roleInfo = ROLE_LABELS[user?.role || ""] || { label: user?.role, color: "bg-gray-100 text-gray-700" };
 
   const Sidebar = () => (
     <div className="h-full flex flex-col bg-card border-r border-border">
@@ -34,23 +44,26 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <p className="text-sm text-muted-foreground mt-1">Gerenciamento Profissional</p>
       </div>
 
-      <div className="px-4 mb-4">
-        <Link href="/new-order">
-          <Button 
-            className="w-full h-12 text-base font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
-            onClick={() => setMobileOpen(false)}
-            data-testid="button-new-order-sidebar"
-          >
-            <PlusCircle className="mr-2 h-5 w-5" />
-            Nova OS
-          </Button>
-        </Link>
-      </div>
+      {hasPermission("create_order") && (
+        <div className="px-4 mb-4">
+          <Link href="/new-order">
+            <Button 
+              className="w-full h-12 text-base font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
+              onClick={() => setMobileOpen(false)}
+              data-testid="button-new-order-sidebar"
+            >
+              <PlusCircle className="mr-2 h-5 w-5" />
+              Nova OS
+            </Button>
+          </Link>
+        </div>
+      )}
 
       <nav className="flex-1 px-4 space-y-2">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = location === item.href;
+          if (!hasPermission(item.permission)) return null;
           return (
             <Link key={item.href} href={item.href}>
               <div
@@ -67,23 +80,45 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </Link>
           );
         })}
+
+        {isAdmin && (
+          <Link href="/users">
+            <div
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 cursor-pointer ${
+                location === "/users"
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+              onClick={() => setMobileOpen(false)}
+            >
+              <UserCog size={20} />
+              <span>Usuários</span>
+            </div>
+          </Link>
+        )}
       </nav>
 
       <div className="p-4 border-t border-border mt-auto">
         <div className="flex items-center gap-3 mb-4 px-2">
           <Avatar className="h-10 w-10 border-2 border-primary/20">
-            <AvatarImage src={user?.profileImageUrl} />
-            <AvatarFallback>{user?.firstName?.[0]}</AvatarFallback>
+            <AvatarFallback>{user?.firstName?.[0] || "U"}</AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate">{user?.firstName} {user?.lastName}</p>
-            <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+            <Badge 
+              variant="outline" 
+              className={`text-xs mt-1 ${roleInfo.color}`}
+            >
+              <Shield className="w-3 h-3 mr-1" />
+              {roleInfo.label}
+            </Badge>
           </div>
         </div>
         <Button 
           variant="outline" 
           className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/20"
           onClick={() => logout()}
+          data-testid="button-logout"
         >
           <LogOut className="mr-2 h-4 w-4" />
           Sair
@@ -94,12 +129,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
-      {/* Desktop Sidebar */}
       <aside className="hidden md:block w-64 fixed h-full z-30">
         <Sidebar />
       </aside>
 
-      {/* Mobile Sidebar */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon" className="md:hidden fixed top-4 right-4 z-40 bg-card shadow-md">
@@ -111,7 +144,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </SheetContent>
       </Sheet>
 
-      {/* Main Content */}
       <main className="flex-1 md:ml-64 p-4 md:p-8 overflow-y-auto">
         <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
           {children}
