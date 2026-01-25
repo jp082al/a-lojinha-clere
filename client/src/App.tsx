@@ -14,6 +14,7 @@ import Orders from "@/pages/orders";
 import NewOrder from "@/pages/new-order";
 import PrintReceipt from "@/pages/print-receipt";
 import PrintLabel from "@/pages/print-label";
+import PrintExit from "@/pages/print-exit";
 import Tracking from "@/pages/tracking";
 import Login from "@/pages/login";
 
@@ -52,6 +53,7 @@ function Router() {
       <Route path="/new-order" component={() => <ProtectedRoute component={NewOrder} />} />
       <Route path="/print/receipt/:id" component={PrintReceipt} />
       <Route path="/print/label/:id" component={PrintLabel} />
+      <Route path="/print/exit/:id" component={PrintExit} />
       <Route path="/acompanhamento/:token" component={Tracking} />
       <Route component={NotFound} />
     </Switch>

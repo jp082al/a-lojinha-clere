@@ -344,6 +344,16 @@ function OrderDetails({ order, onClose, onFinalize }: { order: any, onClose: () 
         >
           <Tag className="w-4 h-4 mr-2" /> Etiqueta
         </Button>
+        {isFinalized && (
+          <Button 
+            size="sm" 
+            variant="outline"
+            className="text-blue-600"
+            onClick={() => window.open(`/print/exit/${order.id}`, '_blank')}
+          >
+            <Printer className="w-4 h-4 mr-2" /> Nota de Saída
+          </Button>
+        )}
         <Button 
           size="sm" 
           variant="outline"
@@ -448,7 +458,7 @@ function OrderDetails({ order, onClose, onFinalize }: { order: any, onClose: () 
                   <FormItem>
                     <FormLabel>Mão de Obra</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" {...field} disabled={isFinalized} />
+                      <Input type="number" step="0.01" {...field} value={field.value || "0"} disabled={isFinalized} />
                     </FormControl>
                   </FormItem>
                 )}
@@ -460,7 +470,7 @@ function OrderDetails({ order, onClose, onFinalize }: { order: any, onClose: () 
                   <FormItem>
                     <FormLabel>Peças</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" {...field} disabled={isFinalized} />
+                      <Input type="number" step="0.01" {...field} value={field.value || "0"} disabled={isFinalized} />
                     </FormControl>
                   </FormItem>
                 )}
@@ -510,6 +520,10 @@ function FinalizationForm({ order, onClose }: { order: any, onClose: () => void 
   const [finalStatus, setFinalStatus] = useState<string>("");
   const [deliveredTo, setDeliveredTo] = useState("");
   const [notes, setNotes] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState(order.paymentMethod || "");
+  const [partsDescription, setPartsDescription] = useState(order.partsDescription || "");
+  const [warrantyDays, setWarrantyDays] = useState(order.warrantyDays?.toString() || "90");
+  const [finalizationSuccess, setFinalizationSuccess] = useState(false);
 
   const handleFinalize = () => {
     if (!finalStatus) return;
@@ -520,14 +534,47 @@ function FinalizationForm({ order, onClose }: { order: any, onClose: () => void 
       finalStatus,
       deliveredTo: deliveredTo || null,
       finalNotes: notes || null,
+      paymentMethod: paymentMethod || null,
+      partsDescription: partsDescription || null,
+      warrantyDays: warrantyDays ? parseInt(warrantyDays) : 90,
       exitDate: new Date()
     }, { 
       onSuccess: () => {
         toast({ title: "OS finalizada com sucesso!" });
-        onClose();
+        setFinalizationSuccess(true);
       }
     });
   };
+
+  if (finalizationSuccess) {
+    return (
+      <>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-green-700">
+            <CheckCircle2 className="w-5 h-5" />
+            OS #{order.id} Finalizada!
+          </DialogTitle>
+        </DialogHeader>
+        <div className="py-6 space-y-4">
+          <p className="text-center text-muted-foreground">
+            A ordem de serviço foi finalizada com sucesso.
+          </p>
+          <div className="space-y-2">
+            <Button 
+              className="w-full"
+              variant="outline"
+              onClick={() => window.open(`/print/exit/${order.id}`, '_blank')}
+            >
+              <Printer className="w-4 h-4 mr-2" /> Imprimir Nota de Saída (Térmica)
+            </Button>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button onClick={onClose}>Fechar</Button>
+        </DialogFooter>
+      </>
+    );
+  }
 
   return (
     <>
@@ -559,6 +606,42 @@ function FinalizationForm({ order, onClose }: { order: any, onClose: () => void 
             placeholder="Nome de quem retirou (opcional)"
             value={deliveredTo}
             onChange={(e) => setDeliveredTo(e.target.value)}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Forma de Pagamento</label>
+          <Select onValueChange={setPaymentMethod} value={paymentMethod}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Dinheiro">Dinheiro</SelectItem>
+              <SelectItem value="PIX">PIX</SelectItem>
+              <SelectItem value="Cartão Débito">Cartão Débito</SelectItem>
+              <SelectItem value="Cartão Crédito">Cartão Crédito</SelectItem>
+              <SelectItem value="Transferência">Transferência</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Peças Utilizadas</label>
+          <Textarea
+            placeholder="Liste as peças utilizadas (ex: 1x Capacitor 10uF - R$15,00)"
+            value={partsDescription}
+            onChange={(e) => setPartsDescription(e.target.value)}
+            rows={3}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Garantia (dias)</label>
+          <Input
+            type="number"
+            placeholder="90"
+            value={warrantyDays}
+            onChange={(e) => setWarrantyDays(e.target.value)}
           />
         </div>
 
