@@ -35,8 +35,9 @@ Preferred communication style: Simple, everyday language.
 - **Runtime**: Node.js with Express
 - **Language**: TypeScript with ESM modules
 - **API Pattern**: RESTful endpoints defined in `shared/routes.ts`
-- **Authentication**: Replit Auth with OpenID Connect, session-based with Passport.js
+- **Authentication**: Local username/password with bcrypt, session-based with Passport.js
 - **Session Storage**: PostgreSQL-backed sessions via connect-pg-simple
+- **Authorization**: Role-based access control (RBAC) with ADMIN, ATENDENTE, TECNICO roles
 
 ### Data Storage
 - **Database**: PostgreSQL
@@ -74,13 +75,17 @@ Preferred communication style: Simple, everyday language.
 - **PostgreSQL**: Primary database, connection via `DATABASE_URL` environment variable
 - **Drizzle ORM**: Type-safe database queries and schema management
 
-### Authentication
-- **Replit Auth**: OAuth/OpenID Connect authentication provider
+### Authentication & Authorization
+- **Local Auth**: Username/password authentication with bcrypt password hashing
+- **RBAC Roles**:
+  - `ADMIN`: Full access to all features + user management
+  - `ATENDENTE`: Create OS, manage customers, update status, finalize orders, print
+  - `TECNICO`: Edit technical fields (diagnosis, budget), update repair status
+- **Default Credentials**: `admin` / `admin123` (created on first run)
+- **User Management**: Admin-only page at `/users` for creating/disabling users
 - **Required Environment Variables**:
   - `DATABASE_URL` - PostgreSQL connection string
   - `SESSION_SECRET` - Express session encryption key
-  - `ISSUER_URL` - Replit OIDC issuer (defaults to https://replit.com/oidc)
-  - `REPL_ID` - Replit environment identifier
 
 ### Third-Party Services
 - **WhatsApp**: Share functionality via wa.me links (no API integration, uses deep links)
