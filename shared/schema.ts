@@ -57,6 +57,13 @@ export const serviceOrders = pgTable("service_orders", {
   finalizedBy: text("finalized_by"),
   deliveredTo: text("delivered_to"),
   finalNotes: text("final_notes"),
+  // Budget (Orçamento) fields
+  budgetStatus: text("budget_status"), // null, AGUARDANDO_APROVACAO, APROVADO, RECUSADO
+  budgetValidityDays: integer("budget_validity_days").default(7),
+  budgetNotes: text("budget_notes"),
+  budgetSentAt: timestamp("budget_sent_at"),
+  budgetApprovedAt: timestamp("budget_approved_at"),
+  budgetApprovedBy: text("budget_approved_by"),
 });
 
 export const insertServiceOrderSchema = createInsertSchema(serviceOrders).omit({ id: true, entryDate: true });
