@@ -44,7 +44,14 @@ import {
   CheckCircle2,
   MoreVertical,
   Link2,
-  ExternalLink
+  ExternalLink,
+  FileText,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Send,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { useForm } from "react-hook-form";
@@ -53,6 +60,8 @@ import { insertServiceOrderSchema, type InsertServiceOrder } from "@shared/schem
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 type StatusFilter = "all" | "open" | "finalized";
 
@@ -284,6 +293,8 @@ export default function Orders() {
 function OrderDetails({ order, onClose, onFinalize }: { order: any, onClose: () => void, onFinalize: () => void }) {
   const { mutate: update, isPending } = useUpdateServiceOrder();
   const { toast } = useToast();
+  const { hasPermission, user } = useAuth();
+  const [budgetOpen, setBudgetOpen] = useState(true);
   
   const form = useForm<InsertServiceOrder>({
     resolver: zodResolver(insertServiceOrderSchema),
@@ -486,6 +497,16 @@ function OrderDetails({ order, onClose, onFinalize }: { order: any, onClose: () 
               )}
             </span>
           </div>
+
+          {/* Orçamento Section */}
+          <BudgetSection 
+            order={order} 
+            isFinalized={isFinalized}
+            hasPermission={hasPermission}
+            user={user}
+            onUpdate={update}
+            toast={toast}
+          />
 
           <DialogFooter className="flex flex-col sm:flex-row gap-2">
             {!isFinalized && (

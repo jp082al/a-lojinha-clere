@@ -77,10 +77,12 @@ export function useAuth() {
       ADMIN: ["*"],
       ATENDENTE: [
         "create_order", "edit_customer", "update_status", "finalize_order", 
-        "print", "view_orders", "view_customers", "view_dashboard", "manage_appliances"
+        "print", "view_orders", "view_customers", "view_dashboard", "manage_appliances",
+        "approve_budget", "send_budget"
       ],
       TECNICO: [
-        "edit_technical", "update_repair_status", "view_orders", "view_customers"
+        "edit_technical", "update_repair_status", "view_orders", "view_customers",
+        "edit_budget", "send_budget"
       ],
     };
     
