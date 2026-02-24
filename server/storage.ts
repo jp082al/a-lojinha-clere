@@ -1,11 +1,13 @@
 import { db } from "./db";
 import {
-  customers, appliances, serviceOrders,
+  customers, appliances, serviceOrders, payments, cashClosings,
   type Customer, type InsertCustomer,
   type Appliance, type InsertAppliance,
-  type ServiceOrder, type InsertServiceOrder
+  type ServiceOrder, type InsertServiceOrder,
+  type Payment, type InsertPayment,
+  type CashClosing, type InsertCashClosing
 } from "@shared/schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
   // Customers
@@ -24,6 +26,16 @@ export interface IStorage {
   getServiceOrderByToken(token: string): Promise<(ServiceOrder & { customer: Customer, appliance: Appliance }) | undefined>;
   createServiceOrder(order: InsertServiceOrder): Promise<ServiceOrder>;
   updateServiceOrder(id: number, order: Partial<InsertServiceOrder>): Promise<ServiceOrder | undefined>;
+
+  // Payments
+  getPaymentsByDate(date: string): Promise<Payment[]>;
+  getPaymentsByOrderId(orderId: number): Promise<Payment[]>;
+  createPayment(payment: InsertPayment): Promise<Payment>;
+  updatePayment(id: number, payment: Partial<InsertPayment>): Promise<Payment | undefined>;
+
+  // Cash Closings
+  getCashClosingByDate(date: string): Promise<CashClosing | undefined>;
+  createCashClosing(closing: InsertCashClosing): Promise<CashClosing>;
 
   // Stats
   getStats(): Promise<{
@@ -158,6 +170,49 @@ export class DatabaseStorage implements IStorage {
       .where(eq(serviceOrders.id, id))
       .returning();
     return order;
+  }
+
+  // Payments
+  async getPaymentsByDate(date: string): Promise<Payment[]> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    return await db
+      .select()
+      .from(payments)
+      .where(and(gte(payments.receivedAt, startOfDay), lte(payments.receivedAt, endOfDay)))
+      .orderBy(desc(payments.receivedAt));
+  }
+
+  async getPaymentsByOrderId(orderId: number): Promise<Payment[]> {
+    return await db.select().from(payments).where(eq(payments.orderId, orderId));
+  }
+
+  async createPayment(insertPayment: InsertPayment): Promise<Payment> {
+    const [payment] = await db.insert(payments).values(insertPayment).returning();
+    return payment;
+  }
+
+  async updatePayment(id: number, updateData: Partial<InsertPayment>): Promise<Payment | undefined> {
+    const [payment] = await db
+      .update(payments)
+      .set(updateData)
+      .where(eq(payments.id, id))
+      .returning();
+    return payment;
+  }
+
+  // Cash Closings
+  async getCashClosingByDate(dateStr: string): Promise<CashClosing | undefined> {
+    const [closing] = await db.select().from(cashClosings).where(eq(cashClosings.date, dateStr));
+    return closing;
+  }
+
+  async createCashClosing(insertClosing: InsertCashClosing): Promise<CashClosing> {
+    const [closing] = await db.insert(cashClosings).values(insertClosing).returning();
+    return closing;
   }
 
   // Stats

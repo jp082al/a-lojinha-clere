@@ -72,21 +72,43 @@ export type ServiceOrder = typeof serviceOrders.$inferSelect;
 export type InsertServiceOrder = z.infer<typeof insertServiceOrderSchema>;
 
 
+// === PAYMENTS ===
+export const payments = pgTable("payments", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id").notNull(),
+  amount: numeric("amount").notNull(),
+  method: text("method").notNull(), // DINHEIRO, PIX, CARTAO, OUTRO
+  receivedBy: text("received_by").notNull(),
+  receivedAt: timestamp("received_at").defaultNow(),
+});
+
+export const insertPaymentSchema = createInsertSchema(payments).omit({ id: true, receivedAt: true });
+export type Payment = typeof payments.$inferSelect;
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+
+// === CASH CLOSINGS ===
+export const cashClosings = pgTable("cash_closings", {
+  id: serial("id").primaryKey(),
+  date: date("date").notNull(),
+  closedBy: text("closed_by").notNull(),
+  expectedTotal: numeric("expected_total").notNull(),
+  countedTotal: numeric("counted_total").notNull(),
+  difference: numeric("difference").notNull(),
+  notes: text("notes"),
+  closedAt: timestamp("closed_at").defaultNow(),
+});
+
+export const insertCashClosingSchema = createInsertSchema(cashClosings).omit({ id: true, closedAt: true });
+export type CashClosing = typeof cashClosings.$inferSelect;
+export type InsertCashClosing = z.infer<typeof insertCashClosingSchema>;
+
 // === RELATIONS ===
 export const customersRelations = relations(customers, ({ many }) => ({
   appliances: many(appliances),
   serviceOrders: many(serviceOrders),
 }));
 
-export const appliancesRelations = relations(appliances, ({ one, many }) => ({
-  customer: one(customers, {
-    fields: [appliances.customerId],
-    references: [customers.id],
-  }),
-  serviceOrders: many(serviceOrders),
-}));
-
-export const serviceOrdersRelations = relations(serviceOrders, ({ one }) => ({
+export const serviceOrdersRelations = relations(serviceOrders, ({ one, many }) => ({
   customer: one(customers, {
     fields: [serviceOrders.customerId],
     references: [customers.id],
@@ -94,5 +116,13 @@ export const serviceOrdersRelations = relations(serviceOrders, ({ one }) => ({
   appliance: one(appliances, {
     fields: [serviceOrders.applianceId],
     references: [appliances.id],
+  }),
+  payments: many(payments),
+}));
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  serviceOrder: one(serviceOrders, {
+    fields: [payments.orderId],
+    references: [serviceOrders.id],
   }),
 }));

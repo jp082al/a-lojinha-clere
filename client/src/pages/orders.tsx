@@ -699,12 +699,25 @@ function FinalizationForm({ order, onClose }: { order: any, onClose: () => void 
       partsDescription: partsDescription || null,
       warrantyDays: warrantyDays ? parseInt(warrantyDays) : 90,
       exitDate: new Date(),
-      finalizedBy: "Usuário"
+      finalizedBy: user?.username || "Usuário"
     }, { 
-      onSuccess: () => {
+      onSuccess: async () => {
+        // Record payment if finalized as ENTREGUE
+        if (finalStatus === "ENTREGUE") {
+          try {
+            await apiRequest("POST", "/api/payments", {
+              orderId: order.id,
+              amount: order.totalValue.toString(),
+              method: paymentMethod || "OUTRO",
+            });
+          } catch (err) {
+            console.error("Failed to record payment:", err);
+          }
+        }
+
         toast({ 
           title: "OS finalizada com sucesso!", 
-          description: `Status: ${finalStatus}` 
+          description: `Status: ${getStatusLabel(finalStatus)}` 
         });
         setFinalizationSuccess(true);
       },

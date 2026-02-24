@@ -31,6 +31,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { href: "/", label: "Dashboard", icon: LayoutDashboard, permission: "view_dashboard" },
     { href: "/orders", label: "Ordens de Serviço", icon: Wrench, permission: "view_orders" },
     { href: "/customers", label: "Clientes", icon: Users, permission: "view_customers" },
+    { href: "/cash", label: "Caixa", icon: Shield, permission: "view_dashboard" },
   ];
 
   const roleInfo = ROLE_LABELS[user?.role || ""] || { label: user?.role, color: "bg-gray-100 text-gray-700" };

@@ -134,6 +134,48 @@ export async function registerRoutes(
     }
   });
 
+  // Payments
+  app.get("/api/payments", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const date = req.query.date as string || new Date().toISOString().split('T')[0];
+    const payments = await storage.getPaymentsByDate(date);
+    res.json(payments);
+  });
+
+  app.post("/api/payments", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const payment = await storage.createPayment({
+      ...req.body,
+      receivedBy: req.user!.username
+    });
+    res.status(201).json(payment);
+  });
+
+  app.patch("/api/payments/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user!.role !== 'ADMIN') return res.sendStatus(403);
+    const id = parseInt(req.params.id);
+    const payment = await storage.updatePayment(id, req.body);
+    if (!payment) return res.sendStatus(404);
+    res.json(payment);
+  });
+
+  // Cash Closings
+  app.get("/api/cash-closings/:date", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const closing = await storage.getCashClosingByDate(req.params.date);
+    res.json(closing || null);
+  });
+
+  app.post("/api/cash-closings", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const closing = await storage.createCashClosing({
+      ...req.body,
+      closedBy: req.user!.username
+    });
+    res.status(201).json(closing);
+  });
+
   // Stats
   app.get(api.stats.get.path, async (req, res) => {
     const stats = await storage.getStats();
