@@ -535,6 +535,144 @@ function OrderDetails({ order, onClose, onFinalize }: { order: any, onClose: () 
   );
 }
 
+function BudgetSection({ order, isFinalized, hasPermission, user, onUpdate, toast }: any) {
+  const [isOpen, setIsOpen] = useState(true);
+  
+  const isBudgetApproved = order.budgetStatus === "APROVADO";
+  const isBudgetRefused = order.budgetStatus === "RECUSADO";
+  const isBudgetPending = order.budgetStatus === "AGUARDANDO_APROVACAO";
+
+  const handleStatusChange = (status: string) => {
+    onUpdate({ 
+      id: order.id, 
+      budgetStatus: status,
+      budgetApprovedAt: status === "APROVADO" ? new Date() : null,
+      budgetApprovedBy: status === "APROVADO" ? user?.username : null
+    }, {
+      onSuccess: () => toast({ title: `Orçamento ${status === "APROVADO" ? "aprovado" : "recusado"}!` })
+    });
+  };
+
+  const sendWhatsApp = () => {
+    const trackingUrl = order.trackingToken 
+      ? `${window.location.origin}/acompanhamento/${order.trackingToken}`
+      : "";
+    const message = `Olá ${order.customer.name}!\n\nSegue o orçamento para a OS #${order.id}:\n\n*Aparelho:* ${order.appliance.type} ${order.appliance.brand}\n*Defeito:* ${order.defect}\n*Diagnóstico:* ${order.diagnosis || "Em análise"}\n\n*Valores:*\nMão de Obra: R$ ${order.serviceValue}\nPeças: R$ ${order.partsValue}\n*Total: R$ ${order.totalValue}*\n\n*Validade:* ${order.budgetValidityDays || 7} dias\n\n${trackingUrl ? `Acompanhe e aprove online: ${trackingUrl}` : ""}`;
+    window.open(`https://wa.me/55${order.customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, "_blank");
+    
+    onUpdate({ id: order.id, budgetSentAt: new Date() });
+  };
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="border rounded-lg overflow-hidden shadow-sm">
+      <CollapsibleTrigger asChild>
+        <Button variant="ghost" className="w-full flex justify-between items-center p-4 h-auto hover:bg-muted/50 transition-colors">
+          <div className="flex items-center gap-2">
+            <FileText className="w-5 h-5 text-primary" />
+            <span className="font-semibold text-lg">Orçamento</span>
+            {order.budgetStatus && (
+              <Badge className={
+                order.budgetStatus === "APROVADO" ? "bg-green-100 text-green-700" : 
+                order.budgetStatus === "RECUSADO" ? "bg-red-100 text-red-700" : 
+                "bg-orange-100 text-orange-700"
+              }>
+                {order.budgetStatus.replace("_", " ")}
+              </Badge>
+            )}
+          </div>
+          {isOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+        </Button>
+      </CollapsibleTrigger>
+      
+      <CollapsibleContent className="p-4 space-y-4 bg-card">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-muted-foreground">Validade (dias)</label>
+            <Input 
+              type="number" 
+              value={order.budgetValidityDays || 7} 
+              onChange={(e) => onUpdate({ id: order.id, budgetValidityDays: parseInt(e.target.value) })}
+              disabled={isFinalized || !hasPermission("edit_budget")}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-muted-foreground">Status do Orçamento</label>
+            <div className="flex gap-2">
+              <Button 
+                type="button"
+                size="sm" 
+                variant={isBudgetPending ? "default" : "outline"}
+                className={isBudgetPending ? "bg-orange-600 hover:bg-orange-700" : "text-orange-600 border-orange-200"}
+                onClick={() => handleStatusChange("AGUARDANDO_APROVACAO")}
+                disabled={isFinalized || !hasPermission("edit_budget")}
+              >
+                <Clock className="w-4 h-4 mr-1" /> Pendente
+              </Button>
+              {hasPermission("approve_budget") && (
+                <>
+                  <Button 
+                    type="button"
+                    size="sm" 
+                    variant={isBudgetApproved ? "default" : "outline"}
+                    className={isBudgetApproved ? "bg-green-600 hover:bg-green-700" : "text-green-600 border-green-200"}
+                    onClick={() => handleStatusChange("APROVADO")}
+                    disabled={isFinalized}
+                  >
+                    <CheckCircle className="w-4 h-4 mr-1" /> Aprovar
+                  </Button>
+                  <Button 
+                    type="button"
+                    size="sm" 
+                    variant={isBudgetRefused ? "default" : "outline"}
+                    className={isBudgetRefused ? "bg-red-600 hover:bg-red-700" : "text-red-600 border-red-200"}
+                    onClick={() => handleStatusChange("RECUSADO")}
+                    disabled={isFinalized}
+                  >
+                    <XCircle className="w-4 h-4 mr-1" /> Recusar
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-muted-foreground">Observações Internas (Orçamento)</label>
+          <Textarea 
+            placeholder="Ex: Cliente achou caro, aguardando peça X..."
+            value={order.budgetNotes || ""}
+            onChange={(e) => onUpdate({ id: order.id, budgetNotes: e.target.value })}
+            disabled={isFinalized || !hasPermission("edit_budget")}
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-2 pt-2 border-t">
+          <Button 
+            type="button"
+            size="sm" 
+            variant="outline" 
+            className="text-green-600 border-green-200 hover:bg-green-50"
+            onClick={sendWhatsApp}
+            disabled={!hasPermission("send_budget")}
+          >
+            <Send className="w-4 h-4 mr-2" /> Enviar p/ WhatsApp
+          </Button>
+          {order.budgetSentAt && (
+            <span className="text-xs text-muted-foreground flex items-center">
+              <CheckCircle2 className="w-3 h-3 mr-1" /> Enviado em {format(new Date(order.budgetSentAt), "dd/MM HH:mm")}
+            </span>
+          )}
+          {order.budgetApprovedAt && (
+            <span className="text-xs text-muted-foreground flex items-center ml-auto">
+              Aprovado por {order.budgetApprovedBy} em {format(new Date(order.budgetApprovedAt), "dd/MM HH:mm")}
+            </span>
+          )}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
 function FinalizationForm({ order, onClose }: { order: any, onClose: () => void }) {
   const { mutate: update, isPending } = useUpdateServiceOrder();
   const { toast } = useToast();
