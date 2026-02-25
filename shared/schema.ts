@@ -110,6 +110,8 @@ export const systemSettings = pgTable("system_settings", {
   address: text("address").notNull().default(""),
   documentNumber: text("document_number").notNull().default(""),
   logoUrl: text("logo_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const insertSystemSettingsSchema = createInsertSchema(systemSettings).omit({ id: true });
