@@ -236,7 +236,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateSystemSettings(updateData: Partial<InsertSystemSettings>): Promise<SystemSettings> {
-    const settings = await this.getSystemSettings();
+    const [settings] = await db.select().from(systemSettings).limit(1);
+    
+    if (!settings) {
+      const [newSettings] = await db.insert(systemSettings).values({
+        businessName: updateData.businessName || "TechRepair",
+        phone: updateData.phone || "",
+        address: updateData.address || "",
+        documentNumber: updateData.documentNumber || "",
+        logoUrl: updateData.logoUrl || null
+      }).returning();
+      return newSettings;
+    }
+
     const [updated] = await db
       .update(systemSettings)
       .set(updateData)
