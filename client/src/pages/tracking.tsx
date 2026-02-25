@@ -19,6 +19,14 @@ export default function Tracking() {
   const [, params] = useRoute("/acompanhamento/:token");
   const token = params?.token;
 
+  const { data: settings } = useQuery<any>({
+    queryKey: ["/api/settings"],
+    queryFn: async () => {
+      const res = await fetch("/api/settings");
+      return res.json();
+    },
+  });
+
   const { data: order, isLoading, error } = useQuery({
     queryKey: ["/api/tracking", token],
     queryFn: async () => {
@@ -63,7 +71,10 @@ export default function Tracking() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 p-4">
       <div className="max-w-lg mx-auto space-y-6 py-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">TechRepair</h1>
+          {settings?.logoUrl && (
+            <img src={settings.logoUrl} alt="Logo" className="h-12 mx-auto mb-2 object-contain" />
+          )}
+          <h1 className="text-2xl font-bold text-gray-900">{settings?.businessName || "TechRepair"}</h1>
           <p className="text-muted-foreground">Acompanhamento de Serviço</p>
         </div>
 

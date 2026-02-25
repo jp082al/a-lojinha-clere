@@ -176,6 +176,20 @@ export async function registerRoutes(
     res.status(201).json(closing);
   });
 
+  // System Settings
+  app.get("/api/settings", async (req, res) => {
+    const settings = await storage.getSystemSettings();
+    res.json(settings);
+  });
+
+  app.patch("/api/settings", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'ADMIN') {
+      return res.sendStatus(403);
+    }
+    const settings = await storage.updateSystemSettings(req.body);
+    res.json(settings);
+  });
+
   // Stats
   app.get(api.stats.get.path, async (req, res) => {
     const stats = await storage.getStats();

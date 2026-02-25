@@ -4,14 +4,19 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
-
-const SHOP_NAME = "TechRepair Assistência Técnica";
-const SHOP_PHONE = "(11) 99999-9999";
+import { useQuery } from "@tanstack/react-query";
+import { type SystemSettings } from "@shared/schema";
 
 export default function PrintReceipt() {
   const [, params] = useRoute("/print/receipt/:id");
   const osId = Number(params?.id);
-  const { data: order, isLoading } = useServiceOrder(osId);
+  const { data: order, isLoading: orderLoading } = useServiceOrder(osId);
+
+  const { data: settings, isLoading: settingsLoading } = useQuery<SystemSettings>({
+    queryKey: ["/api/settings"],
+  });
+
+  const isLoading = orderLoading || settingsLoading;
 
   const urlParams = new URLSearchParams(window.location.search);
   const size = urlParams.get("size") || "80";
@@ -129,8 +134,12 @@ export default function PrintReceipt() {
 
       <div className="receipt">
         <div className="center">
-          <div className="bold" style={{ fontSize: "14px" }}>{SHOP_NAME}</div>
-          <div>{SHOP_PHONE}</div>
+          {settings?.logoUrl && (
+            <img src={settings.logoUrl} alt="Logo" style={{ maxHeight: "40px", marginBottom: "4px" }} />
+          )}
+          <div className="bold" style={{ fontSize: "14px" }}>{settings?.businessName || "TechRepair Assistência Técnica"}</div>
+          <div>{settings?.phone || "(11) 99999-9999"}</div>
+          {settings?.address && <div style={{ fontSize: "10px" }}>{settings.address}</div>}
         </div>
 
         <div className="divider" />

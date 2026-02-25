@@ -102,6 +102,20 @@ export const insertCashClosingSchema = createInsertSchema(cashClosings).omit({ i
 export type CashClosing = typeof cashClosings.$inferSelect;
 export type InsertCashClosing = z.infer<typeof insertCashClosingSchema>;
 
+// === SYSTEM SETTINGS ===
+export const systemSettings = pgTable("system_settings", {
+  id: serial("id").primaryKey(),
+  businessName: text("business_name").notNull().default("TechRepair"),
+  phone: text("phone").notNull().default(""),
+  address: text("address").notNull().default(""),
+  documentNumber: text("document_number").notNull().default(""),
+  logoUrl: text("logo_url"),
+});
+
+export const insertSystemSettingsSchema = createInsertSchema(systemSettings).omit({ id: true });
+export type SystemSettings = typeof systemSettings.$inferSelect;
+export type InsertSystemSettings = z.infer<typeof insertSystemSettingsSchema>;
+
 // === RELATIONS ===
 export const customersRelations = relations(customers, ({ many }) => ({
   appliances: many(appliances),

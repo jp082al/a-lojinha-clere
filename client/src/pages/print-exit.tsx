@@ -4,9 +4,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
-
-const SHOP_NAME = "TechRepair Assistência Técnica";
-const SHOP_WHATSAPP = "(11) 99999-9999";
+import { useQuery } from "@tanstack/react-query";
+import { type SystemSettings } from "@shared/schema";
 
 const FINAL_STATUS_LABELS: Record<string, string> = {
   "ENTREGUE": "Consertado e entregue",
@@ -20,7 +19,13 @@ const FINAL_STATUS_LABELS: Record<string, string> = {
 export default function PrintExit() {
   const [, params] = useRoute("/print/exit/:id");
   const osId = Number(params?.id);
-  const { data: order, isLoading } = useServiceOrder(osId);
+  const { data: order, isLoading: orderLoading } = useServiceOrder(osId);
+
+  const { data: settings, isLoading: settingsLoading } = useQuery<SystemSettings>({
+    queryKey: ["/api/settings"],
+  });
+
+  const isLoading = orderLoading || settingsLoading;
 
   const urlParams = new URLSearchParams(window.location.search);
   const size = urlParams.get("size") || "80";
@@ -164,8 +169,11 @@ export default function PrintExit() {
 
       <div className="receipt">
         <div className="center">
-          <div className="bold" style={{ fontSize: "13px" }}>{SHOP_NAME}</div>
-          <div>WhatsApp: {SHOP_WHATSAPP}</div>
+          {settings?.logoUrl && (
+            <img src={settings.logoUrl} alt="Logo" style={{ maxHeight: "40px", marginBottom: "4px" }} />
+          )}
+          <div className="bold" style={{ fontSize: "13px" }}>{settings?.businessName || "TechRepair Assistência Técnica"}</div>
+          <div>WhatsApp: {settings?.phone || "(11) 99999-9999"}</div>
         </div>
 
         <div className="title">

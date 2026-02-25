@@ -1,11 +1,12 @@
 import { db } from "./db";
 import {
-  customers, appliances, serviceOrders, payments, cashClosings,
+  customers, appliances, serviceOrders, payments, cashClosings, systemSettings,
   type Customer, type InsertCustomer,
   type Appliance, type InsertAppliance,
   type ServiceOrder, type InsertServiceOrder,
   type Payment, type InsertPayment,
-  type CashClosing, type InsertCashClosing
+  type CashClosing, type InsertCashClosing,
+  type SystemSettings, type InsertSystemSettings
 } from "@shared/schema";
 import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
 
@@ -36,6 +37,10 @@ export interface IStorage {
   // Cash Closings
   getCashClosingByDate(date: string): Promise<CashClosing | undefined>;
   createCashClosing(closing: InsertCashClosing): Promise<CashClosing>;
+
+  // System Settings
+  getSystemSettings(): Promise<SystemSettings>;
+  updateSystemSettings(settings: Partial<InsertSystemSettings>): Promise<SystemSettings>;
 
   // Stats
   getStats(): Promise<{
@@ -213,6 +218,31 @@ export class DatabaseStorage implements IStorage {
   async createCashClosing(insertClosing: InsertCashClosing): Promise<CashClosing> {
     const [closing] = await db.insert(cashClosings).values(insertClosing).returning();
     return closing;
+  }
+
+  // System Settings
+  async getSystemSettings(): Promise<SystemSettings> {
+    const [settings] = await db.select().from(systemSettings).limit(1);
+    if (!settings) {
+      const [newSettings] = await db.insert(systemSettings).values({
+        businessName: "TechRepair",
+        phone: "",
+        address: "",
+        documentNumber: ""
+      }).returning();
+      return newSettings;
+    }
+    return settings;
+  }
+
+  async updateSystemSettings(updateData: Partial<InsertSystemSettings>): Promise<SystemSettings> {
+    const settings = await this.getSystemSettings();
+    const [updated] = await db
+      .update(systemSettings)
+      .set(updateData)
+      .where(eq(systemSettings.id, settings.id))
+      .returning();
+    return updated;
   }
 
   // Stats

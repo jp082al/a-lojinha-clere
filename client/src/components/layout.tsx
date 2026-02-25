@@ -8,13 +8,16 @@ import {
   Menu,
   PlusCircle,
   UserCog,
-  Shield
+  Shield,
+  Settings
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useQuery } from "@tanstack/react-query";
+import { type SystemSettings } from "@shared/schema";
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   ADMIN: { label: "Admin", color: "bg-red-100 text-red-700 border-red-200" },
@@ -26,6 +29,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { user, logout, isAdmin, hasPermission } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const { data: settings } = useQuery<SystemSettings>({
+    queryKey: ["/api/settings"],
+  });
 
   const navItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard, permission: "view_dashboard" },
@@ -39,9 +46,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const Sidebar = () => (
     <div className="h-full flex flex-col bg-card border-r border-border">
       <div className="p-6">
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-          TechRepair
-        </h1>
+        <div className="flex items-center gap-2">
+          {settings?.logoUrl && (
+            <img src={settings.logoUrl} alt="Logo" className="h-8 w-8 object-contain" />
+          )}
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+            {settings?.businessName || "TechRepair"}
+          </h1>
+        </div>
         <p className="text-sm text-muted-foreground mt-1">Gerenciamento Profissional</p>
       </div>
 
@@ -83,19 +95,34 @@ export function Layout({ children }: { children: React.ReactNode }) {
         })}
 
         {isAdmin && (
-          <Link href="/users">
-            <div
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 cursor-pointer ${
-                location === "/users"
-                  ? "bg-primary/10 text-primary font-medium"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
-              onClick={() => setMobileOpen(false)}
-            >
-              <UserCog size={20} />
-              <span>Usuários</span>
-            </div>
-          </Link>
+          <>
+            <Link href="/users">
+              <div
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 cursor-pointer ${
+                  location === "/users"
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+                onClick={() => setMobileOpen(false)}
+              >
+                <UserCog size={20} />
+                <span>Usuários</span>
+              </div>
+            </Link>
+            <Link href="/settings">
+              <div
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 cursor-pointer ${
+                  location === "/settings"
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+                onClick={() => setMobileOpen(false)}
+              >
+                <Settings size={20} />
+                <span>Configurações</span>
+              </div>
+            </Link>
+          </>
         )}
       </nav>
 
