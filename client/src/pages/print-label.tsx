@@ -116,7 +116,7 @@ export default function PrintLabel() {
 
       <div className="label">
         <div className="os-number">
-          #{order.id}
+          #{100000 + order.id}
         </div>
 
         <div className="customer-name">

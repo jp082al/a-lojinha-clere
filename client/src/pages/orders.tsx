@@ -164,7 +164,7 @@ export default function Orders() {
                     <div className="space-y-2">
                       <div className="flex items-center gap-3 flex-wrap">
                         <span className="text-lg font-bold text-foreground">
-                          #{order.id}
+                          {order.order_number}
                         </span>
                         <StatusBadge status={order.status} />
                         {order.finalStatus && (
@@ -200,7 +200,7 @@ export default function Orders() {
                             const trackingUrl = order.trackingToken 
                               ? `${window.location.origin}/acompanhamento/${order.trackingToken}`
                               : '';
-                            const message = `Olá ${order.customer.name}!\n\nSua OS #${order.id} está com status: *${order.status}*\n\n${trackingUrl ? `Acompanhe online: ${trackingUrl}` : ''}`;
+                            const message = `Olá ${order.customer.name}!\n\nSua OS ${order.orderNumber} está com status: *${order.status}*\n\n${trackingUrl ? `Acompanhe online: ${trackingUrl}` : ''}`;
                             window.open(`https://wa.me/55${order.customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                           }}
                           data-testid={`button-whatsapp-${order.id}`}
@@ -331,7 +331,7 @@ function OrderDetails({ order, onClose, onFinalize }: { order: any, onClose: () 
     <>
       <DialogHeader>
         <DialogTitle className="flex items-center gap-3">
-          <span>OS #{order.id}</span>
+          <span>{order.orderNumber}</span>
           <StatusBadge status={order.status} />
           {order.finalStatus && (
             <Badge variant="secondary">{order.finalStatus}</Badge>
@@ -370,7 +370,7 @@ function OrderDetails({ order, onClose, onFinalize }: { order: any, onClose: () 
           variant="outline"
           className="text-green-600"
           onClick={() => {
-            const message = `Olá ${order.customer.name}!\n\nSua OS #${order.id} está com status: *${order.status}*\n\n${trackingUrl ? `Acompanhe online: ${trackingUrl}` : ''}`;
+            const message = `Olá ${order.customer.name}!\n\nSua OS ${order.orderNumber} está com status: *${order.status}*\n\n${trackingUrl ? `Acompanhe online: ${trackingUrl}` : ''}`;
             window.open(`https://wa.me/55${order.customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
           }}
         >
@@ -381,7 +381,7 @@ function OrderDetails({ order, onClose, onFinalize }: { order: any, onClose: () 
           variant="outline"
           onClick={() => {
             const subject = `OS #${order.id} - ${order.appliance.type} ${order.appliance.brand}`;
-            const body = `Olá ${order.customer.name},\n\nSua OS #${order.id} está com status: ${order.status}\n\nAparelho: ${order.appliance.type} ${order.appliance.brand} ${order.appliance.model}\nDefeito: ${order.defect}\n\n${trackingUrl ? `Acompanhe online: ${trackingUrl}` : ''}\n\nAtenciosamente,\nTechRepair`;
+            const body = `Olá ${order.customer.name},\n\nSua OS ${order.orderNumber} está com status: ${order.status}\n\nAparelho: ${order.appliance.type} ${order.appliance.brand} ${order.appliance.model}\nDefeito: ${order.defect}\n\n${trackingUrl ? `Acompanhe online: ${trackingUrl}` : ''}\n\nAtenciosamente,\nTechRepair`;
             window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
           }}
         >
@@ -748,7 +748,7 @@ function FinalizationForm({ order, onClose }: { order: any, onClose: () => void 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-green-700">
             <CheckCircle2 className="w-5 h-5" />
-            OS #{order.id} Finalizada!
+            OS {order.order_number} Finalizada!
           </DialogTitle>
         </DialogHeader>
         <div className="py-6 space-y-4">
@@ -775,7 +775,7 @@ function FinalizationForm({ order, onClose }: { order: any, onClose: () => void 
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Finalizar OS #{order.id}</DialogTitle>
+        <DialogTitle>Finalizar OS {order.order_number}</DialogTitle>
         <DialogDescription>
           Registre a baixa/saída desta ordem de serviço.
         </DialogDescription>

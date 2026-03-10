@@ -81,7 +81,7 @@ export default function Tracking() {
         <Card className="shadow-lg">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-3xl font-bold">OS #{order.id}</CardTitle>
+              <CardTitle className="text-3xl font-bold">OS #{100000 + order.id}</CardTitle>
               <Badge className={`${statusConfig.color} px-3 py-1`}>
                 <StatusIcon className="h-4 w-4 mr-1" />
                 {statusConfig.label}

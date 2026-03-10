@@ -145,7 +145,7 @@ export default function PrintReceipt() {
         <div className="divider" />
 
         <div className="os-number">
-          OS #{order.id}
+          OS #{100000 + order.id}
         </div>
 
         <div className="section">

@@ -19,9 +19,9 @@ export default function SettingsPage() {
   const form = useForm({
     resolver: zodResolver(insertSystemSettingsSchema),
     values: settings || {
-      businessName: "TechRepair",
-      phone: "",
-      address: "",
+      businessName: "A lojinha Clere",
+      phone: "(82)99838-2648",
+      address: "Rua Brasília, 205",
       documentNumber: "",
       logoUrl: ""
     },

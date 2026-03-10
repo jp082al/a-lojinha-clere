@@ -189,7 +189,7 @@ export default function NewOrder() {
 
         toast({
           title: "OS Criada com Sucesso!",
-          description: `Ordem de Serviço #${order.id} registrada.`,
+          description: `Ordem de Serviço #${100000 + order.id} registrada.`,
         });
 
         setCreatedOrder({

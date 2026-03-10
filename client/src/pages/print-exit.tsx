@@ -181,7 +181,7 @@ export default function PrintExit() {
         </div>
 
         <div className="os-number">
-          OS #{order.id}
+          OS #{100000 + order.id}
         </div>
 
         <div className="divider" />

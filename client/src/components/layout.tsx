@@ -51,7 +51,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <img src={settings.logoUrl} alt="Logo" className="h-8 w-8 object-contain" />
           )}
           <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-            {settings?.businessName || "TechRepair"}
+            {settings?.businessName || "A Lojinha Clere"}
           </h1>
         </div>
         <p className="text-sm text-muted-foreground mt-1">Gerenciamento Profissional</p>

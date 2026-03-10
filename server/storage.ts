@@ -1,48 +1,55 @@
 import { db } from "./db";
 import {
-  customers, appliances, serviceOrders, payments, cashClosings, systemSettings,
-  type Customer, type InsertCustomer,
-  type Appliance, type InsertAppliance,
-  type ServiceOrder, type InsertServiceOrder,
-  type Payment, type InsertPayment,
-  type CashClosing, type InsertCashClosing,
-  type SystemSettings, type InsertSystemSettings
+  customers,
+  appliances,
+  serviceOrders,
+  payments,
+  cashClosings,
+  systemSettings,
+  type Customer,
+  type InsertCustomer,
+  type Appliance,
+  type InsertAppliance,
+  type ServiceOrder,
+  type InsertServiceOrder,
+  type Payment,
+  type InsertPayment,
+  type CashClosing,
+  type InsertCashClosing,
+  type SystemSettings,
+  type InsertSystemSettings
 } from "@shared/schema";
-import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
+
+import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
 
 export interface IStorage {
-  // Customers
+
   getCustomers(): Promise<Customer[]>;
   getCustomer(id: number): Promise<Customer | undefined>;
   createCustomer(customer: InsertCustomer): Promise<Customer>;
   updateCustomer(id: number, customer: Partial<InsertCustomer>): Promise<Customer | undefined>;
 
-  // Appliances
   getAppliancesByCustomerId(customerId: number): Promise<Appliance[]>;
   createAppliance(appliance: InsertAppliance): Promise<Appliance>;
 
-  // Service Orders
   getServiceOrders(): Promise<(ServiceOrder & { customer: Customer, appliance: Appliance })[]>;
   getServiceOrder(id: number): Promise<(ServiceOrder & { customer: Customer, appliance: Appliance }) | undefined>;
   getServiceOrderByToken(token: string): Promise<(ServiceOrder & { customer: Customer, appliance: Appliance }) | undefined>;
+
   createServiceOrder(order: InsertServiceOrder): Promise<ServiceOrder>;
   updateServiceOrder(id: number, order: Partial<InsertServiceOrder>): Promise<ServiceOrder | undefined>;
 
-  // Payments
   getPaymentsByDate(date: string): Promise<Payment[]>;
   getPaymentsByOrderId(orderId: number): Promise<Payment[]>;
   createPayment(payment: InsertPayment): Promise<Payment>;
   updatePayment(id: number, payment: Partial<InsertPayment>): Promise<Payment | undefined>;
 
-  // Cash Closings
   getCashClosingByDate(date: string): Promise<CashClosing | undefined>;
   createCashClosing(closing: InsertCashClosing): Promise<CashClosing>;
 
-  // System Settings
   getSystemSettings(): Promise<SystemSettings>;
   updateSystemSettings(settings: Partial<InsertSystemSettings>): Promise<SystemSettings>;
 
-  // Stats
   getStats(): Promise<{
     totalOrders: number;
     completedOrders: number;
@@ -52,7 +59,9 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  // Customers
+
+  // CUSTOMERS
+
   async getCustomers(): Promise<Customer[]> {
     return await db.select().from(customers).orderBy(desc(customers.createdAt));
   }
@@ -73,21 +82,31 @@ export class DatabaseStorage implements IStorage {
       .set(updateData)
       .where(eq(customers.id, id))
       .returning();
+
     return customer;
   }
 
-  // Appliances
+  // APPLIANCES
+
   async getAppliancesByCustomerId(customerId: number): Promise<Appliance[]> {
-    return await db.select().from(appliances).where(eq(appliances.customerId, customerId));
+    return await db
+      .select()
+      .from(appliances)
+      .where(eq(appliances.customerId, customerId));
   }
 
   async createAppliance(insertAppliance: InsertAppliance): Promise<Appliance> {
-    const [appliance] = await db.insert(appliances).values(insertAppliance).returning();
+    const [appliance] = await db
+      .insert(appliances)
+      .values(insertAppliance)
+      .returning();
+
     return appliance;
   }
 
-  // Service Orders
-  async getServiceOrders(): Promise<(ServiceOrder & { customer: Customer, appliance: Appliance })[]> {
+  // SERVICE ORDERS
+
+  async getServiceOrders() {
     const rows = await db
       .select({
         serviceOrder: serviceOrders,
@@ -106,7 +125,8 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
-  async getServiceOrder(id: number): Promise<(ServiceOrder & { customer: Customer, appliance: Appliance }) | undefined> {
+  async getServiceOrder(id: number) {
+
     const rows = await db
       .select({
         serviceOrder: serviceOrders,
@@ -118,9 +138,10 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(appliances, eq(serviceOrders.applianceId, appliances.id))
       .where(eq(serviceOrders.id, id));
 
-    if (rows.length === 0) return undefined;
+    if (!rows.length) return undefined;
 
     const row = rows[0];
+
     return {
       ...row.serviceOrder,
       customer: row.customer,
@@ -128,16 +149,8 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async createServiceOrder(insertOrder: InsertServiceOrder): Promise<ServiceOrder> {
-    const trackingToken = this.generateTrackingToken();
-    const [order] = await db.insert(serviceOrders).values({
-      ...insertOrder,
-      trackingToken
-    }).returning();
-    return order;
-  }
+  async getServiceOrderByToken(token: string) {
 
-  async getServiceOrderByToken(token: string): Promise<(ServiceOrder & { customer: Customer, appliance: Appliance }) | undefined> {
     const rows = await db
       .select({
         serviceOrder: serviceOrders,
@@ -149,9 +162,10 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(appliances, eq(serviceOrders.applianceId, appliances.id))
       .where(eq(serviceOrders.trackingToken, token));
 
-    if (rows.length === 0) return undefined;
+    if (!rows.length) return undefined;
 
     const row = rows[0];
+
     return {
       ...row.serviceOrder,
       customer: row.customer,
@@ -160,34 +174,88 @@ export class DatabaseStorage implements IStorage {
   }
 
   private generateTrackingToken(): string {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
-    let token = '';
+
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+
+    let token = "";
+
     for (let i = 0; i < 12; i++) {
       token += chars.charAt(Math.floor(Math.random() * chars.length));
     }
+
     return token;
   }
 
-  async updateServiceOrder(id: number, updateData: Partial<InsertServiceOrder>): Promise<ServiceOrder | undefined> {
+  // GERAR NUMERO DA OS → OS-ANO-1001
+
+  private async getNextOrderNumber(): Promise<string> {
+
+    const year = new Date().getFullYear();
+
+    const result = await db.execute(sql`
+      SELECT order_number
+      FROM service_orders
+      WHERE order_number LIKE ${`OS-${year}-%`}
+      ORDER BY order_number DESC
+      LIMIT 1
+    `);
+
+    if (!result.rows.length) {
+      return `OS-${year}-1001`;
+    }
+
+    const last = result.rows[0].order_number as string;
+
+    const lastNumber = parseInt(last.split("-")[2]);
+
+    const next = lastNumber + 1;
+
+    return `OS-${year}-${next}`;
+  }
+
+  async createServiceOrder(insertOrder: InsertServiceOrder): Promise<ServiceOrder> {
+
+    const trackingToken = this.generateTrackingToken();
+
+    const orderNumber = await this.getNextOrderNumber();
+
+    const [order] = await db
+      .insert(serviceOrders)
+      .values({
+        ...insertOrder,
+        orderNumber,
+        trackingToken,
+      })
+      .returning();
+
+    return order;
+  }
+
+  async updateServiceOrder(id: number, updateData: Partial<InsertServiceOrder>) {
+
     const [order] = await db
       .update(serviceOrders)
       .set(updateData)
       .where(eq(serviceOrders.id, id))
       .returning();
+
     return order;
   }
 
-  // Payments
+  // PAYMENTS
+
   async getPaymentsByDate(date: string): Promise<Payment[]> {
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
+
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
 
     return await db
       .select()
       .from(payments)
-      .where(and(gte(payments.receivedAt, startOfDay), lte(payments.receivedAt, endOfDay)))
+      .where(and(gte(payments.receivedAt, start), lte(payments.receivedAt, end)))
       .orderBy(desc(payments.receivedAt));
   }
 
@@ -196,82 +264,106 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPayment(insertPayment: InsertPayment): Promise<Payment> {
-    const [payment] = await db.insert(payments).values(insertPayment).returning();
+
+    const [payment] = await db
+      .insert(payments)
+      .values(insertPayment)
+      .returning();
+
     return payment;
   }
 
-  async updatePayment(id: number, updateData: Partial<InsertPayment>): Promise<Payment | undefined> {
+  async updatePayment(id: number, updateData: Partial<InsertPayment>) {
+
     const [payment] = await db
       .update(payments)
       .set(updateData)
       .where(eq(payments.id, id))
       .returning();
+
     return payment;
   }
 
-  // Cash Closings
-  async getCashClosingByDate(dateStr: string): Promise<CashClosing | undefined> {
-    const [closing] = await db.select().from(cashClosings).where(eq(cashClosings.date, dateStr));
+  // CASH
+
+  async getCashClosingByDate(dateStr: string) {
+
+    const [closing] = await db
+      .select()
+      .from(cashClosings)
+      .where(eq(cashClosings.date, dateStr));
+
     return closing;
   }
 
-  async createCashClosing(insertClosing: InsertCashClosing): Promise<CashClosing> {
-    const [closing] = await db.insert(cashClosings).values(insertClosing).returning();
+  async createCashClosing(insertClosing: InsertCashClosing) {
+
+    const [closing] = await db
+      .insert(cashClosings)
+      .values(insertClosing)
+      .returning();
+
     return closing;
   }
 
-  // System Settings
+  // SETTINGS
+
   async getSystemSettings(): Promise<SystemSettings> {
-    const [settings] = await db.select().from(systemSettings).limit(1);
+
+    const [settings] = await db
+      .select()
+      .from(systemSettings)
+      .limit(1);
+
     if (!settings) {
-      const [newSettings] = await db.insert(systemSettings).values({
-        businessName: "TechRepair",
-        phone: "",
-        address: "",
-        documentNumber: ""
-      }).returning();
+
+      const [newSettings] = await db
+        .insert(systemSettings)
+        .values({
+          businessName: "A Lojinha Clere",
+          phone: "(82)99838-2648",
+          address: "Rua Brasília, 205",
+          documentNumber: ""
+        })
+        .returning();
+
       return newSettings;
     }
+
     return settings;
   }
 
-  async updateSystemSettings(updateData: Partial<InsertSystemSettings>): Promise<SystemSettings> {
+  async updateSystemSettings(updateData: Partial<InsertSystemSettings>) {
+
     const [settings] = await db.select().from(systemSettings).limit(1);
-    
-    if (!settings) {
-      const [newSettings] = await db.insert(systemSettings).values({
-        businessName: updateData.businessName || "TechRepair",
-        phone: updateData.phone || "",
-        address: updateData.address || "",
-        documentNumber: updateData.documentNumber || "",
-        logoUrl: updateData.logoUrl || null
-      }).returning();
-      return newSettings;
-    }
 
     const [updated] = await db
       .update(systemSettings)
       .set(updateData)
       .where(eq(systemSettings.id, settings.id))
       .returning();
+
     return updated;
   }
 
-  // Stats
+  // STATS
+
   async getStats() {
+
     const orders = await db.select().from(serviceOrders);
-    
+
     const totalOrders = orders.length;
-    const completedOrders = orders.filter(o => o.status === 'Entregue' || o.status === 'Pronto').length;
-    
-    // Calculate total revenue from totalValue field (numeric)
-    const totalRevenue = orders.reduce((sum, order) => {
-      return sum + Number(order.totalValue || 0);
-    }, 0);
+
+    const completedOrders = orders.filter(
+      o => o.status === "Entregue" || o.status === "Pronto"
+    ).length;
+
+    const totalRevenue = orders.reduce((sum, o) => sum + Number(o.totalValue || 0), 0);
 
     const statusDistribution: Record<string, number> = {};
-    orders.forEach(order => {
-      statusDistribution[order.status] = (statusDistribution[order.status] || 0) + 1;
+
+    orders.forEach(o => {
+      statusDistribution[o.status] = (statusDistribution[o.status] || 0) + 1;
     });
 
     return {
