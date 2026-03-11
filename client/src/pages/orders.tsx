@@ -758,7 +758,7 @@ function FinalizationForm({ order, onClose }: { order: any, onClose: () => void 
             <Button 
               className="w-full"
               variant="outline"
-              onClick={() => window.open(`/print/exit/${order.order_number}`, '_blank')}
+              onClick={() => window.open(`/print/exit/${order.id}`, '_blank')}
             >
               <Printer className="w-4 h-4 mr-2" /> Imprimir Nota de Saída (Térmica)
             </Button>
