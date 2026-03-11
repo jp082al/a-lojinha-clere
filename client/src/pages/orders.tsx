@@ -83,7 +83,7 @@ export default function Orders() {
     order.order_number?.toLowerCase().includes(search) ||
     order.customerName?.toLowerCase().includes(search) ||
     order.customerPhone?.toLowerCase().includes(search) ||
-    order.deviceModel?.toLowerCase().includes(search)
+    order.deviceModel?.toLowerCase().includes(search) ||
     order.order_number?.toLowerCase().includes(`os-${search}`)
   );
 });
