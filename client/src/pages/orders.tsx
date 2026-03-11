@@ -74,20 +74,19 @@ export default function Orders() {
   const [editingOrder, setEditingOrder] = useState<any | null>(null);
   const [finalizingOrder, setFinalizingOrder] = useState<any | null>(null);
 
-  const filteredOrders = orders?.filter(o => {
-    const matchesSearch = o.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      o.id.toString().includes(searchTerm);
-    
-    if (!matchesSearch) return false;
+ const filteredOrders = orders.filter((order) => {
+  if (!searchTerm) return true;
 
-    if (statusFilter === "open") {
-      return !["Entregue"].includes(o.status) && !o.finalStatus;
-    }
-    if (statusFilter === "finalized") {
-      return o.status === "Entregue" || o.finalStatus;
-    }
-    return true;
-  });
+  const search = searchTerm.toLowerCase();
+
+  return (
+    order.order_number?.toLowerCase().includes(search) ||
+    order.customerName?.toLowerCase().includes(search) ||
+    order.customerPhone?.toLowerCase().includes(search) ||
+    order.deviceModel?.toLowerCase().includes(search)
+    order.order_number?.toLowerCase().includes(`os-${search}`)
+  );
+});
 
   return (
     <div className="space-y-8">
@@ -759,7 +758,7 @@ function FinalizationForm({ order, onClose }: { order: any, onClose: () => void 
             <Button 
               className="w-full"
               variant="outline"
-              onClick={() => window.open(`/print/exit/${order.id}`, '_blank')}
+              onClick={() => window.open(`/print/exit/${order.order_number}`, '_blank')}
             >
               <Printer className="w-4 h-4 mr-2" /> Imprimir Nota de Saída (Térmica)
             </Button>
