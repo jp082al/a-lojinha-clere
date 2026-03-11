@@ -67,24 +67,24 @@ type StatusFilter = "all" | "open" | "finalized";
 
 export default function Orders() {
   const [, setLocation] = useLocation();
-  const { data: orders, isLoading } = useServiceOrders();
+  const { data: orders = [] } = useServiceOrders();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<any | null>(null);
   const [finalizingOrder, setFinalizingOrder] = useState<any | null>(null);
 
- const filteredOrders = orders.filter((order) => {
+const filteredOrders = orders.filter((order) => {
   if (!searchTerm) return true;
 
   const search = searchTerm.toLowerCase();
 
   return (
-    order.order_number?.toLowerCase().includes(search) ||
-    order.customerName?.toLowerCase().includes(search) ||
-    order.customerPhone?.toLowerCase().includes(search) ||
-    order.deviceModel?.toLowerCase().includes(search) ||
-    order.order_number?.toLowerCase().includes(`os-${search}`)
+    (order.order_number || "").toLowerCase().includes(search) ||
+    (order.customerName || "").toLowerCase().includes(search) ||
+    (order.customerPhone || "").toLowerCase().includes(search) ||
+    (order.deviceModel || "").toLowerCase().includes(search) ||
+    (order.order_number ||"").toLowerCase().includes(`os-${search}`)
   );
 });
 
